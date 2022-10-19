@@ -22,7 +22,7 @@ class Wps(Package):
     version('4.2', sha256='3e175d033355d3e7638be75bc7c0bc0de6da299ebd175a9bbc1b7a121acd0168')
 
     # Serial variant recommended in WRF/WPS docs
-    variant('build_type', default='serial',
+    variant('build_type', default='dmpar',
             values=('serial', 'serial_NO_GRIB2', 'dmpar', 'dmpar_NO_GRIB2'))
 
     # These patches deal with netcdf & netcdf-fortran being two diff things
@@ -46,7 +46,7 @@ class Wps(Package):
     depends_on('time', type=('build'))
     depends_on('m4', type='build')
     depends_on('libtool', type='build')
-    depends_on('jasper')
+    depends_on('jasper@2.0.32')
     phases = ['configure', 'build', 'install']
 
     patch('for_aarch64.patch', when='target=aarch64:')

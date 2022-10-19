@@ -110,6 +110,11 @@ class Wrf(Package):
         default=True,
         description="Parallel IO support through Pnetcdf library",
     )
+    variant(
+        "chem",
+        default=False,
+        description="Enable WRF-Chem",
+    )
 
     patch("patches/3.9/netcdf_backport.patch", when="@3.9.1.1")
     patch("patches/3.9/tirpc_detect.patch", when="@3.9.1.1")
@@ -170,7 +175,7 @@ class Wrf(Package):
     depends_on("parallel-netcdf", when="+pnetcdf")
     depends_on("netcdf-c")
     depends_on("netcdf-fortran")
-    depends_on("jasper")
+    depends_on("jasper@2.0.32")
     depends_on("libpng")
     depends_on("zlib")
     depends_on("perl")
@@ -210,6 +215,10 @@ class Wrf(Package):
             env.set("WRFIO_NCD_LARGE_FILE_SUPPORT", 1)
             env.set("HDF5", self.spec["hdf5"].prefix)
             env.prepend_path('PATH', ancestor(self.compiler.cc))
+
+        if "+chem" in self.spec:
+            env.set("WRF_CHEM", 1)
+            env.set("WRF_EM_CORE", 1)
 
     def patch(self):
         # Let's not assume csh is intalled in bin
