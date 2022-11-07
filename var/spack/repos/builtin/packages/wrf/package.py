@@ -192,7 +192,7 @@ class Wrf(Package):
     depends_on("parallel-netcdf", when="+pnetcdf")
     depends_on("netcdf-c")
     depends_on("netcdf-fortran")
-    depends_on("jasper:2")
+    depends_on("jasper@:2")
     depends_on("libpng")
     depends_on("zlib")
     depends_on("perl")

@@ -50,10 +50,10 @@ class Wps(Package):
     )
 
     # These patches deal with netcdf & netcdf-fortran being two diff things
-    patch("patches/4.2/arch.Config.pl.patch", when="@4.2:")
+    patch("patches/4.2/arch.Config.pl.patch", when="@4.2:4.3.1")
     patch("patches/4.2/arch.configure.defaults.patch", when="@4.2")
-    patch("patches/4.2/configure.patch", when="@4.2:")
-    patch("patches/4.2/preamble.patch", when="@4.2:")
+    patch("patches/4.2/configure.patch", when="@4.2:4.3.1")
+    patch("patches/4.2/preamble.patch", when="@4.2:4.3.1")
     patch("patches/4.3/arch.configure.defaults.patch", when="@4.3:4.3.0")
     patch("patches/4.3.1/arch.configure.defaults.patch", when="@4.3.1:")
 
