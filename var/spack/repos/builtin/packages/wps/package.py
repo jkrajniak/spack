@@ -5,6 +5,7 @@
 
 import glob
 import tempfile
+import time
 
 from spack.package import *
 from subprocess import PIPE, Popen
@@ -123,8 +124,31 @@ class Wps(Package):
             setNonBlocking(p.stdout)
             setNonBlocking(p.stderr)
 
-        p.stdin.write(f"{build_type}\n".encode())
-        p.stdin.flush()
+        outputbuf = ""
+        stallcounter = 0
+        returncode = -1
+        while True:
+            line = p.stderr.readline().decode()
+            if not line:
+                line = p.stdout.readline().decode()
+            if not line:
+                if p.poll() is not None:
+                    returncode = p.returncode
+                    break
+                if stallcounter > 300:
+                    raise InstallError("Output stalled for 30s, undetected question")
+                time.sleep(0.1)
+                stallcounter += 1
+                continue
+            stdout.write(line)
+            stallcounter = 0
+            outputbuf += line
+            p.stdin.write(f"{build_type}\n".encode())
+            p.stdin.flush()
+            outputbuf = ""
+
+        if returncode != 0:
+            raise InstallError("Configured failed - unknown error")
 
     def build(self, spec, prefix):
         csh = which("csh")
