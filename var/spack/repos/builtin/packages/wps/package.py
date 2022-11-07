@@ -7,15 +7,37 @@ import glob
 import tempfile
 
 from spack.package import *
+from subprocess import PIPE, Popen
+from sys import platform, stdout
+
+from llnl.util import tty
+
+from spack.package import *
+
+is_windows = platform == "win32"
+
+if not is_windows:
+    from fcntl import F_GETFL, F_SETFL, fcntl
+    from os import O_NONBLOCK
+
+
+def setNonBlocking(fd):
+    """
+    Set the given file descriptor to non-blocking
+    Non-blocking pipes are not supported on windows
+    """
+    flags = fcntl(fd, F_GETFL) | O_NONBLOCK
+    fcntl(fd, F_SETFL, flags)
 
 
 class Wps(Package):
     """The Weather Research and Forecasting Pre-Processing System (WPS)"""
 
     homepage = "https://www.mmm.ucar.edu/weather-research-and-forecasting-model"
-    url = "https://github.com/wrf-model/WPS/archive/v4.2.tar.gz"
+    url = "https://github.com/wrf-model/WPS/archive/refs/tags/v4.2.tar.gz"
     maintainers = ["MichaelLaufer"]
 
+    version("4.4", sha256="fe9c8d8a9a4abbf800b30e6cbb378604c6040e4536f5594b8e2dae43e942e2b3")
     version("4.3.1", sha256="db6da44a2ca68cc289e98ab388a53c27283eb4ed8e92edee268466543fdedb0e")
     version("4.3", sha256="1913cb24de549f029d65635feea27f3304a8f42ec025954a0887651fc89d1e9e")
     version("4.2", sha256="3e175d033355d3e7638be75bc7c0bc0de6da299ebd175a9bbc1b7a121acd0168")
@@ -33,13 +55,12 @@ class Wps(Package):
     patch("patches/4.2/configure.patch", when="@4.2:")
     patch("patches/4.2/preamble.patch", when="@4.2:")
     patch("patches/4.3/arch.configure.defaults.patch", when="@4.3:4.3.0")
-    patch("patches/4.3.1/arch.configure.defaults.patch", when="@4.3.1")
+    patch("patches/4.3.1/arch.configure.defaults.patch", when="@4.3.1:")
 
     # According to:
     # http://www2.mmm.ucar.edu/wrf/users/docs/user_guide_v4/v4.0/users_guide_chap2.html#_Required_Compilers_and_1
     # Section: "Required/Optional Libraries to Download"
     depends_on("wrf")
-    depends_on("netcdf-c")
     depends_on("netcdf-fortran")
     depends_on("mpi")
     # build script use csh
@@ -56,7 +77,6 @@ class Wps(Package):
 
     def setup_build_environment(self, env):
         env.set("WRF_DIR", self.spec["wrf"].prefix)
-        env.set("NETCDF", self.spec["netcdf-c"].prefix)
         # This gets used via the applied patch files
         env.set("NETCDFF", self.spec["netcdf-fortran"].prefix)
         env.set("JASPERINC", self.spec["jasper"].prefix.include)
@@ -98,10 +118,13 @@ class Wps(Package):
         # Spack already makes sure that the variant value is part of the set.
         build_type = compiler_opts[spec.variants["build_type"].value]
 
-        with tempfile.TemporaryFile(mode="w") as fp:
-            fp.write(build_type + "\n")
-            fp.seek(0)
-            Executable("./configure")(input=fp)
+        p = Popen("./configure", stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        if not is_windows:
+            setNonBlocking(p.stdout)
+            setNonBlocking(p.stderr)
+
+        p.stdin.write(f"{build_type}\n".encode())
+        p.stdin.flush()
 
     def build(self, spec, prefix):
         csh = which("csh")
